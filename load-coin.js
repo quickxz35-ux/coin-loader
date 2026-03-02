@@ -88,26 +88,10 @@ async function loadCoin(coin) {
   coin = coin.trim().toUpperCase();
   console.log(`\n🚀 Loading ${coin} across all trading tools...\n`);
   
-  // Try to find Chrome in common locations
-  const fs = require('fs');
-  const path = require('path');
+  // Use your existing Chrome
+  const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
   
-  const possibleChromePaths = [
-    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-    process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe',
-    process.env.PROGRAMFILES + '\\Google\\Chrome\\Application\\chrome.exe',
-    process.env['PROGRAMFILES(X86)'] + '\\Google\\Chrome\\Application\\chrome.exe',
-  ];
-  
-  let chromePath = possibleChromePaths.find(p => fs.existsSync(p));
-  
-  if (!chromePath) {
-    console.log('⚠️ Chrome not found, using Chromium instead.');
-    console.log('   Install Chrome from https://google.com/chrome for best results.');
-  } else {
-    console.log(`✅ Found Chrome at: ${chromePath}`);
-  }
+  console.log(`Using Chrome at: ${chromePath}`);
   
   // Launch Chrome with your profile (so you're already logged in)
   const browser = await chromium.launch({ 
