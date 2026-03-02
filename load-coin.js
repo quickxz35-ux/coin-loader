@@ -88,8 +88,13 @@ async function loadCoin(coin) {
   coin = coin.trim().toUpperCase();
   console.log(`\n🚀 Loading ${coin} across all trading tools...\n`);
   
+  // Path to your existing Chrome
+  const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+  
+  // Launch Chrome with your profile (so you're already logged in)
   const browser = await chromium.launch({ 
-    headless: false,  // Show browser window
+    headless: false,
+    executablePath: chromePath,
     args: ['--start-maximized']
   });
   
@@ -102,13 +107,13 @@ async function loadCoin(coin) {
   try {
     // Open first URL in first tab
     const page1 = await context.newPage();
-    await page1.goto(URLS[0].url, { waitUntil: 'networkidle' });
+    await page1.goto(URLS[0].url, { waitUntil: 'domcontentloaded', timeout: 60000 });
     pages.push({ page: page1, ...URLS[0] });
     
     // Open remaining URLs in new tabs
     for (let i = 1; i < URLS.length; i++) {
       const page = await context.newPage();
-      await page.goto(URLS[i].url, { waitUntil: 'networkidle' });
+      await page.goto(URLS[i].url, { waitUntil: 'domcontentloaded', timeout: 60000 });
       pages.push({ page, ...URLS[i] });
     }
     
