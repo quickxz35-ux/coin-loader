@@ -1,7 +1,5 @@
-#!/usr/bin/env node
 const { chromium } = require('playwright');
 
-// URLs to open
 const URLS = [
   { name: 'CoinGlass Inflow/Outflow', url: 'https://www.coinglass.com/spot-inflow-outflow' },
   { name: 'TradingView Chart 1', url: 'https://www.tradingview.com/chart/p73NNDSL/' },
@@ -10,22 +8,15 @@ const URLS = [
   { name: 'CoinAnk Long/Short', url: 'https://coinank.com/longshort/realtime' },
 ];
 
-// Site-specific selectors for coin input
 const SITE_CONFIGS = {
   'coinglass.com': {
-    searchButton: '[data-testid="search-icon"], .search-icon, input[placeholder*="Search"], .ant-input-search',
-    input: 'input[placeholder*="Search"], input[placeholder*="Coin"], .ant-input, [data-testid="search-input"]',
-    submit: '.ant-btn, button[type="submit"], .search-btn',
+    input: 'input[placeholder*="Search"], input[placeholder*="Coin"], .ant-input',
   },
   'tradingview.com': {
-    searchButton: '.tv-search-row__input, [data-name="symbol-search-button"], .chart-gui-wrapper button',
-    input: 'input[placeholder*="Search"], .tv-search-row__input, input[data-role="search"]',
-    submit: 'button[type="submit"], .tv-search-row__symbol-button',
+    input: 'input[placeholder*="Search"], .tv-search-row__input',
   },
   'coinank.com': {
-    searchButton: 'input[placeholder*="coin"], input[placeholder*="search"], .search-input',
     input: 'input[placeholder*="coin"], input[placeholder*="search"], .el-input__inner',
-    submit: 'button, .search-btn, .el-button',
   },
 };
 
@@ -41,34 +32,21 @@ async function setCoinOnPage(page, coin, siteName) {
   const config = domain ? SITE_CONFIGS[domain] : null;
   
   if (!config) {
-    console.log(`  ⚠️ No automation config for ${siteName}, manual selection needed`);
+    console.log(`  ⚠️ No config for ${siteName}`);
     return;
   }
   
   try {
-    // Wait for page to fully load
     await sleep(3000);
     
-    // Try to find and click search button first (if exists)
-    try {
-      const searchBtn = await page.locator(config.searchButton).first();
-      if (await searchBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await searchBtn.click();
-        await sleep(500);
-      }
-    } catch {}
-    
-    // Find input and type coin
     const input = await page.locator(config.input).first();
     await input.waitFor({ timeout: 5000 });
     
-    // Clear existing value and type new coin
     await input.fill('');
     await sleep(200);
     await input.fill(coin.toUpperCase());
     await sleep(500);
     
-    // Press Enter to submit
     await input.press('Enter');
     await sleep(1500);
     
@@ -86,56 +64,44 @@ async function loadCoin(coin) {
   }
   
   coin = coin.trim().toUpperCase();
-  console.log(`\n🚀 Loading ${coin} across all trading tools...\n`);
+  console.log(`\n🚀 Loading ${coin}...\n`);
   
-  // Use your existing Chrome
   const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+  const userDataDir = 'C:\\Users\\gssjr\\AppData\\Local\\Google\\Chrome\\User Data';
   
-  console.log(`Using Chrome at: ${chromePath}`);
+  console.log('Launching Chrome with your profile...');
   
-  // Launch Chrome with your profile (so you're already logged in)
-  const browser = await chromium.launch({ 
+  // Use persistent context to keep your logins
+  const browserContext = await chromium.launchPersistentContext(userDataDir, {
     headless: false,
     executablePath: chromePath,
-    args: ['--start-maximized']
-  });
-  
-  const context = await browser.newContext({
+    args: ['--start-maximized'],
     viewport: { width: 1920, height: 1080 }
   });
   
   const pages = [];
   
   try {
-    // Open first URL in first tab
-    const page1 = await context.newPage();
-    await page1.goto(URLS[0].url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    pages.push({ page: page1, ...URLS[0] });
-    
-    // Open remaining URLs in new tabs
-    for (let i = 1; i < URLS.length; i++) {
-      const page = await context.newPage();
-      await page.goto(URLS[i].url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-      pages.push({ page, ...URLS[i] });
+    // Open all URLs
+    for (const u of URLS) {
+      const page = await browserContext.newPage();
+      await page.goto(u.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      pages.push({ page, ...u });
+      console.log(`Opened: ${u.name}`);
     }
     
-    console.log(`Opened ${pages.length} tabs\n`);
+    console.log(`\nOpened ${pages.length} tabs\n`);
     
     // Set coin on each page
     for (const { page, name } of pages) {
       await setCoinOnPage(page, coin, name);
     }
     
-    console.log(`\n✅ All pages loaded for ${coin}!`);
-    console.log('Browser will stay open. Close it manually when done.\n');
+    console.log(`\n✅ Done! Close browser when finished.`);
     
   } catch (e) {
     console.error('Error:', e.message);
-    await browser.close();
-    process.exit(1);
   }
 }
 
-// Get coin from command line
-const coin = process.argv[2];
-loadCoin(coin);
+loadCoin(process.argv[2]);
